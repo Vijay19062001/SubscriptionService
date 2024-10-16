@@ -1,0 +1,16 @@
+CREATE TABLE `subscription`.`auth_token` (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,
+    created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	status ENUM('ACTIVE', 'INACTIVE') NOT NULL,
+    created_by VARCHAR(45) NOT NULL,
+    updated_by VARCHAR(45) NOT NULL,
+   CONSTRAINT `fk_user_id`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `subscription`.`user_table`(`id`)
+     ON DELETE CASCADE
+    );

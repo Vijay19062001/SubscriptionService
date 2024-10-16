@@ -1,0 +1,22 @@
+CREATE TABLE `subscription`.`subscription_details` (
+   `id` INT NOT NULL AUTO_INCREMENT,
+  `user_id` INT NOT NULL,
+  `service_id` INT NOT NULL,
+  `start_date` TIMESTAMP NOT NULL,
+  `end_date` TIMESTAMP NOT NULL,
+  `subscription_status` ENUM('ACTIVE', 'INACTIVE', 'CANCELLED', 'SUSPENDED') NOT NULL,
+  `status` ENUM('ACTIVE', 'INACTIVE') NOT NULL,
+   `created_date` TIMESTAMP NOT NULL,
+  `updated_date` TIMESTAMP NOT NULL,
+  `created_by` VARCHAR(45) NOT NULL,
+  `updated_by` VARCHAR(45) NOT NULL,
+  PRIMARY KEY (`id`),
+
+  CONSTRAINT `user_id`
+    FOREIGN KEY (`user_id`)
+    REFERENCES `user_table` (`id`),
+
+  CONSTRAINT `service_id`
+    FOREIGN KEY (`service_id`)
+    REFERENCES `service_table` (`id`)
+);
