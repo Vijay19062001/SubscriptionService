@@ -1,6 +1,7 @@
 package com.sms.SubscriptionService.service.servicesImpl;
 
 import com.sms.SubscriptionService.enums.Status;
+import com.sms.SubscriptionService.repository.UserRepository;
 import com.sms.SubscriptionService.utils.DateUtils;
 import com.sms.SubscriptionService.entity.Subscription;
 import com.sms.SubscriptionService.enums.SubscriptionStatus;
@@ -16,6 +17,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,6 +31,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionMapper subscriptionMapper;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionServiceImpl.class);
+
+    @Autowired
+    private UserRepository userRepository; // Assuming there is a UserRepository to fetch user details
 
 
     @Transactional
@@ -74,12 +79,9 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.setEndDate(newEndDate);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setUpdatedDate(LocalDateTime.now());
-
         // Save the updated subscription
         Subscription updatedSubscription = subscriptionRepository.save(subscription);
-
         // Send confirmation email (placeholder for the actual implementation)
-
         subscriptionMapper.toModel(updatedSubscription);
     }
 
@@ -89,20 +91,16 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     private LocalDateTime calculateNewEndDate(LocalDateTime currentEndDate) {
         // Calculate the new end date based on the renewal period (e.g., add one month)
-        return currentEndDate.plusMonths(1); // Adjust this logic based on your requirements
+        return currentEndDate.plusMonths(1);
     }
 
 
     @Override
     public SubscriptionModel updateSubscription(Integer subscriptionId, SubscriptionModel subscriptionModel) {
         logger.info("Subscription update for ID {} started", subscriptionId);
-
-
-        // Fetch the existing subscription from the repository
         Subscription existingSubscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new RuntimeException("Subscription with ID '" + subscriptionId + "' not found."));
 
-        // Update fields only if they are not null
         if (subscriptionModel.getServiceId() != null) {
             existingSubscription.setServiceId(Integer.parseInt(subscriptionModel.getServiceId()));
         }
@@ -129,16 +127,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                 throw new InvalidDateFormatException("Invalid end date format. Please use the correct format.");
             }
         }
-
-        // Update audit fields
-        existingSubscription.setUpdatedBy("Admin"); // Change as necessary to reflect the actual user updating
+        existingSubscription.setUpdatedBy("Admin");
         existingSubscription.setUpdatedDate(LocalDateTime.now());
-
-        // Save the updated subscription back to the repository
         Subscription updatedSubscription = subscriptionRepository.save(existingSubscription);
         logger.info("Subscription update for ID {} completed", subscriptionId);
-
-        // Return the updated SubscriptionModel
         return subscriptionMapper.toModel(updatedSubscription);
     }
 
@@ -154,7 +146,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Override
     public void cancelSubscription(Integer subscriptionId) {
         logger.info("Cancelling subscription with ID {}", subscriptionId);
-
         Subscription subscription = subscriptionRepository.findById(subscriptionId)
                 .orElseThrow(() -> new RuntimeException("Subscription with ID '" + subscriptionId + "' not found."));
 
@@ -162,9 +153,31 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.setUpdatedBy("Admin");
         subscription.setUpdatedDate(LocalDateTime.now());
         subscriptionRepository.save(subscription);
-
         logger.info("Subscription with ID {} successfully cancelled", subscriptionId);
     }
 
+    @Override
+    public List<Subscription> getSubscriptionDetails(Integer userId) {
+        if (userId == null || userId <= 0) {
+            throw new RuntimeException("Invalid userId format.");
+        }
+
+        boolean userExists = userRepository.existsById(userId);
+        if (!userExists) {
+            throw new RuntimeException("User with userId " + userId + " not found.");
+        }
+
+        List<Subscription> subscriptions = subscriptionRepository.findByUserId(userId);
+
+        if (subscriptions.isEmpty()) {
+            throw new RuntimeException("No subscriptions found for userId: " + userId);
+        }
+        return subscriptions;
+    }
+
+    @Override
+    public List<Subscription> getAllSubscriptions() {
+        return subscriptionRepository.findAll();
+    }
 
 }

@@ -26,7 +26,7 @@ public class AuthTokens {
     private int userId;
 
     @Column(name = "token", nullable = false)
-    private int token;
+    private String token;
 
     @Column(name = "issued_date", nullable = false)
     private LocalDate issuedDate;

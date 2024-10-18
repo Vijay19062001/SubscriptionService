@@ -11,4 +11,5 @@ import java.util.List;
 public interface SubscriptionRepository extends JpaRepository<Subscription, Integer> {
 
     List<Subscription> findByUserIdAndStatus(Integer userId, SubscriptionStatus status);
+    List<Subscription> findByUserId(Integer userId);
 }
