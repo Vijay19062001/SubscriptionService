@@ -1,4 +1,4 @@
-package com.lms.SubscriptionService;
+package com.sms.SubscriptionService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

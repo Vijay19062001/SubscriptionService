@@ -3,7 +3,7 @@ CREATE TABLE `subscription`.`user_details` (
   `user_name` VARCHAR(45) NOT NULL,
   `email` VARCHAR(45) NOT NULL,
   `password` VARCHAR(45) NOT NULL,
-  `account_number` INT NOT NULL,
+  `account_number` VARCHAR(50) NOT NULL,
    `status` ENUM('ACTIVE', 'INACTIVE') NOT NULL,
   `created_date` TIMESTAMP NOT NULL,
   `updated_date` TIMESTAMP NOT NULL,
