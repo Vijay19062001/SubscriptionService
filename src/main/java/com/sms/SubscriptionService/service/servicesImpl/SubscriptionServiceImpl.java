@@ -33,15 +33,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionServiceImpl.class);
 
     @Autowired
-    private UserRepository userRepository; // Assuming there is a UserRepository to fetch user details
+    private UserRepository userRepository;
 
 
     @Transactional
     public SubscriptionModel createSubscription(SubscriptionModel subscriptionModel) {
-        // Business validation: Check for duplicate active subscriptions
         Subscription subscription = subscriptionMapper.toEntity(subscriptionModel);
 
-        // Use the enum directly instead of a string
         List<Subscription> activeSubscriptions = subscriptionRepository
                 .findByUserIdAndStatus(subscription.getUserId(), SubscriptionStatus.ACTIVE);
 
@@ -54,7 +52,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         subscription.setCreatedDate(now);
         subscription.setUpdatedDate(now);
 
-        // Assuming `createdBy` is obtained from the subscriptionModel or a logged-in user context
         String createdBy = subscriptionModel.getCreatedBy();
         subscription.setCreatedBy((createdBy != null && !createdBy.isEmpty()) ? createdBy : "system"); // Default to "system"
         subscription.setUpdatedBy("system");
@@ -65,7 +62,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     public void renewSubscription(Integer subscriptionId, SubscriptionModel subscriptionModel) {
-        // Validate subscription ID and check if it exists
         Subscription subscription = subscriptionRepository.findById(Integer.parseInt(String.valueOf(subscriptionId)))
                 .orElseThrow(() -> new SubscriptionNotFoundException("Subscription not found."));
 
@@ -74,12 +70,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new InvalidRequestException("Invalid renewal request.");
         }
 
-        // Update subscription details
         LocalDateTime newEndDate = calculateNewEndDate(subscription.getEndDate());
         subscription.setEndDate(newEndDate);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setUpdatedDate(LocalDateTime.now());
-        // Save the updated subscription
         Subscription updatedSubscription = subscriptionRepository.save(subscription);
         // Send confirmation email (placeholder for the actual implementation)
         subscriptionMapper.toModel(updatedSubscription);

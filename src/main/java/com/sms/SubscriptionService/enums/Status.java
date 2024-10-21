@@ -9,17 +9,16 @@ public enum Status {
 
     private final String dbStatus;
 
-    // Constructor
     Status(String dbStatus) {
         this.dbStatus = dbStatus;
     }
 
-    @JsonValue // Used for serialization
+    @JsonValue
     public String getDbStatus() {
         return dbStatus;
     }
 
-    @JsonCreator // Used for deserialization
+    @JsonCreator
     public static Status fromString(String dbStatus) {
         for (Status status : Status.values()) {
             if (status.name().equalsIgnoreCase(dbStatus)) {

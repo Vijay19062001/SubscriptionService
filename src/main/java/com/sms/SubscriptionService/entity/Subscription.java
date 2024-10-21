@@ -43,7 +43,7 @@ public class Subscription {
     @Column(name = "status", nullable = false)
     private Status dbstatus;
 
-    @Column(name = "created_date", nullable = false)
+
     private LocalDateTime createdDate;
 
     @Column(name = "updated_date", nullable = false)

@@ -50,5 +50,8 @@ public class AuthTokens {
     @Column(name = "updated_by", nullable = false)
     private String updatedBy;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id", insertable=false, updatable=false,referencedColumnName = "id")
+    private Users users;
 
 }

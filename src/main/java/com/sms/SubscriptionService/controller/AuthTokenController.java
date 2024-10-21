@@ -1,40 +1,38 @@
 package com.sms.SubscriptionService.controller;
 
-import com.sms.SubscriptionService.exception.custom.BusinessValidationException;
-import com.sms.SubscriptionService.service.servicesImpl.AuthTokenService;
+import com.sms.SubscriptionService.service.AuthTokenService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
-
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/auth")
+@Tag(name = "Auth Token Controller")
 public class AuthTokenController {
 
-    @Autowired
-    private AuthTokenService authTokenService;
+        @Autowired
+        private AuthTokenService authTokenService;
 
-    @PostMapping("/token")
-    public ResponseEntity<Map<String, String>> generateToken(@RequestBody Map<String, String> request) {
-        String username = request.get("username");
-        String password = request.get("password");
-
-        if (username == null || username.isEmpty() || password == null || password.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Username and password are required"));
-        }
-
-        try {
-            String token = authTokenService.authenticateUser(username, password);
-            Map<String, String> response = new HashMap<>();
-            response.put("token", token);
-            return ResponseEntity.ok(response);
-        } catch (BusinessValidationException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "An unexpected error occurred"));
-        }
+    @PostMapping()
+    @Operation(
+            summary = "Generate Authentication Token",
+            description = "Generates an authentication token for the user based on provided username and password.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Authentication token generated successfully"),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized: Invalid username or password"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request: Missing or invalid parameters")
+            }
+    )
+    public ResponseEntity<String> login(@RequestParam String userName, @RequestParam String password) {
+        String token = authTokenService.authenticateUser(userName, password);
+        return ResponseEntity.ok(token);
     }
+
+
 }
+
