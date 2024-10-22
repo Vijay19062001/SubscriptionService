@@ -4,7 +4,6 @@ package com.sms.SubscriptionService.model;
 import com.sms.SubscriptionService.enums.Status;
 import com.sms.SubscriptionService.enums.SubscriptionStatus;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,8 +22,6 @@ public class SubscriptionModel {
     private String serviceId;
     private String startDate;
     private String endDate;
-    @NotNull(message = "Status cannot be null.")
-    private SubscriptionStatus status;
     @NotNull(message = "dbStatus cannot be null.")
     private Status dbstatus;
     private String createdDate;

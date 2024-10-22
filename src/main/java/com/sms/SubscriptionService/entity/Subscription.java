@@ -36,14 +36,10 @@ public class Subscription {
     private LocalDateTime endDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "subscription_status", nullable = false)
-    private SubscriptionStatus status;
-
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private Status dbstatus;
 
-
+    @Column(name = "created_date", nullable = false)
     private LocalDateTime createdDate;
 
     @Column(name = "updated_date", nullable = false)

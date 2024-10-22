@@ -19,14 +19,12 @@ public class SubscriptionMapper {
         subscription.setUserId(Integer.parseInt(subscriptionModel.getUserId()));
         subscription.setServiceId(Integer.parseInt(subscriptionModel.getServiceId()));
 
-        // Convert String to LocalDateTime
         LocalDateTime startDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getStartDate());
         subscription.setStartDate(startDateTime);
 
         LocalDateTime endDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getEndDate());
         subscription.setEndDate(endDateTime);
 
-        subscription.setStatus(SubscriptionStatus.fromString(String.valueOf(subscriptionModel.getStatus())));
         subscription.setDbstatus(Status.fromString(String.valueOf(subscriptionModel.getDbstatus())));
 
         return subscription;
@@ -39,14 +37,12 @@ public class SubscriptionMapper {
         subscriptionModel.setUserId(String.valueOf(subscription.getUserId()));
         subscriptionModel.setServiceId(String.valueOf(subscription.getServiceId()));
 
-        // Convert LocalDateTime back to LocalDate
         String formattedStartDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getStartDate()));
         subscriptionModel.setStartDate(formattedStartDate);
 
         String formattedEndDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getEndDate()));
         subscriptionModel.setEndDate(formattedEndDate);
 
-        subscriptionModel.setStatus(SubscriptionStatus.valueOf(subscription.getStatus().name()));
         subscriptionModel.setDbstatus(Status.valueOf(subscription.getDbstatus().name()));
 
         return subscriptionModel;

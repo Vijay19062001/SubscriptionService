@@ -1,10 +1,7 @@
 package com.sms.SubscriptionService.exception;
 
 import com.sms.SubscriptionService.exception.constants.ErrorResponse;
-import com.sms.SubscriptionService.exception.custom.BasicValidationException;
-import com.sms.SubscriptionService.exception.custom.InvalidPaymentException;
-import com.sms.SubscriptionService.exception.custom.InvalidRequestException;
-import com.sms.SubscriptionService.exception.custom.SubscriptionNotFoundException;
+import com.sms.SubscriptionService.exception.custom.*;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +10,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import java.util.List;
+
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -67,8 +65,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
     }
 
-    @ExceptionHandler(InvalidRequestException.class)
-    public ResponseEntity<String> handleInvalidRequest(InvalidRequestException ex) {
+    @ExceptionHandler(InvalidSubscriptionDatesException.class)
+    public ResponseEntity<String> handleInvalidRequest(InvalidSubscriptionDatesException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
@@ -76,4 +74,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleInvalidPayment(InvalidPaymentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
+
+    @ExceptionHandler(BusinessValidationException.class)
+    public ResponseEntity<String> handleBusinessValidationException(BusinessValidationException ex) {
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+
 }

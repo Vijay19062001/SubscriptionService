@@ -8,15 +8,11 @@ import java.util.List;
 
 public interface SubscriptionService {
     public SubscriptionModel createSubscription(SubscriptionModel subscriptionModel) ;
-    public void renewSubscription(Integer subscriptionId, SubscriptionModel subscriptionModel) ;
     SubscriptionModel updateSubscription(Integer subscriptionId, SubscriptionModel subscriptionModel);
-    public void deleteSubscription(Integer subscriptionId) ;
     public void cancelSubscription(Integer subscriptionId) ;
     public List<Subscription> getSubscriptionDetails(Integer userId) ;
     public List<Subscription> getAllSubscriptions() ;
-
-
-
+    public boolean checkActiveSubscription(String userId, String serviceId) ;
 
 
     }

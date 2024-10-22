@@ -31,9 +31,6 @@ public class AuthTokenInterceptor implements HandlerInterceptor {
         } catch (BusinessValidationException e) {
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, e.getMessage());
             return false;
-        } catch (Exception e) {
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "An error occurred while processing the request");
-            return false;
         }
 
         return true;

@@ -1,13 +1,19 @@
 package com.sms.SubscriptionService.controller;
 
+import com.sms.SubscriptionService.exception.custom.BusinessValidationException;
 import com.sms.SubscriptionService.service.AuthTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -15,8 +21,10 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Auth Token Controller")
 public class AuthTokenController {
 
-        @Autowired
-        private AuthTokenService authTokenService;
+    private static final Logger logger = LoggerFactory.getLogger(AuthTokenController.class);
+
+    @Autowired
+    private AuthTokenService authTokenService;
 
     @PostMapping()
     @Operation(
@@ -28,11 +36,18 @@ public class AuthTokenController {
                     @ApiResponse(responseCode = "400", description = "Bad Request: Missing or invalid parameters")
             }
     )
-    public ResponseEntity<String> login(@RequestParam String userName, @RequestParam String password) {
-        String token = authTokenService.authenticateUser(userName, password);
-        return ResponseEntity.ok(token);
+    public ResponseEntity<Map<String, String>> authenticateUser(@RequestParam String userName, @RequestParam String password) {
+        logger.info("Login attempt for user: {}", userName);
+        try {
+            logger.info("Authenticating user: {}", userName);
+            Map<String, String> tokenResponse = authTokenService.authenticateUser(userName, password);
+            return new ResponseEntity<>(tokenResponse, HttpStatus.OK);
+        } catch (BusinessValidationException e) {
+            logger.error("Authentication failed for user: {}", userName);
+            return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            logger.error("Internal server error during authentication: {}", e.getMessage());
+            return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.UNAUTHORIZED);
+        }
     }
-
-
 }
-
