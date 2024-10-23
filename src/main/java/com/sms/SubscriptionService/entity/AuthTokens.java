@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -29,20 +30,20 @@ public class AuthTokens {
     private String token;
 
     @Column(name = "issued_date", nullable = false)
-    private LocalDate issuedDate;
+    private LocalDateTime issuedDate;
 
     @Column(name = "expires_date", nullable = false)
-    private LocalDate expireDate;
+    private LocalDateTime expireDate;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private Status dbstatus;
 
     @Column(name = "created_date", nullable = false)
-    private LocalDate createdDate;
+    private LocalDateTime createdDate;
 
     @Column(name = "updated_date", nullable = false)
-    private LocalDate updatedDate;
+    private LocalDateTime updatedDate;
 
     @Column(name = "created_by", nullable = false)
     private String createdBy;

@@ -1,9 +1,10 @@
 package com.sms.SubscriptionService.controller;
 
 import com.sms.SubscriptionService.entity.Subscription;
+import com.sms.SubscriptionService.enums.Status;
 import com.sms.SubscriptionService.exception.custom.BusinessValidationException;
 import com.sms.SubscriptionService.exception.custom.DuplicateSubscriptionException;
-import com.sms.SubscriptionService.exception.custom.InvalidSubscriptionDatesException;
+import com.sms.SubscriptionService.exception.custom.InvalidDateFormatException;
 import com.sms.SubscriptionService.model.SubscriptionModel;
 import com.sms.SubscriptionService.repository.SubscriptionRepository;
 import com.sms.SubscriptionService.service.AuthTokenService;
@@ -33,79 +34,19 @@ public class SubscriptionController {
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionController.class);
 
     @PostMapping("/create")
-    @Operation(summary = "Create Subscription",
-            description = "Creates a new subscription with the provided details.", responses = {
-            @ApiResponse(description = "Subscription created successfully"),
-            @ApiResponse(description = "Unauthorized: Invalid or missing token"),
-            @ApiResponse(description = "Conflict: Duplicate active subscription for the same service"),
-            @ApiResponse(description = "Bad Request: Invalid subscription details")
-    })
-    public ResponseEntity<String> createSubscription(@RequestBody @Valid SubscriptionModel subscriptionModel,
-                                                     @RequestHeader(value = "Authorization", required = false) String token,
-                                                     @RequestHeader(value = "UserId", required = false) Integer userId) {
-        logger.info("Attempting to create a subscription for userId: {}", subscriptionModel.getUserId());
-
-        if (token == null) {
-            logger.warn("Unauthorized access attempt: Token is missing.");
-            throw new BusinessValidationException("Unauthorized: Missing token");
-        }
-
-        if (!token.startsWith("Bearer ")) {
-            logger.warn("Unauthorized access attempt: Invalid token format.");
-            throw new BusinessValidationException("Unauthorized: Invalid token format");
-        }
-
-        String actualToken = token.substring(7);
-        logger.info("Extracted Token: {}", actualToken);
-        if (!authTokenService.isUserValid(actualToken)) {
-            logger.warn("Unauthorized access attempt with expired token.");
-            throw new BusinessValidationException("message: expired token");
-        }
-
-        try {
-            if (subscriptionModel.getServiceId() == null || subscriptionModel.getServiceId().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Bad Request: Service ID is required.");
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Create Subscription", description = "Creates a new subscription with the provided details.",
+            responses = {
+                    @ApiResponse(responseCode = "201", description = "Subscription created successfully"),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized: Invalid or missing token"),
+                    @ApiResponse(responseCode = "409", description = "Conflict: Duplicate active subscription for the same service"),
+                    @ApiResponse(responseCode = "400", description = "Bad Request: Invalid subscription details")
             }
-
-            boolean hasActiveSubscriptionForService = subscriptionService.checkActiveSubscription(
-                    subscriptionModel.getUserId(), subscriptionModel.getServiceId());
-
-            if (hasActiveSubscriptionForService) {
-                logger.warn("Duplicate subscription attempt for serviceId: {}", subscriptionModel.getServiceId());
-                return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict: You already have an active subscription for this service.");
-            }
-
-
-            SubscriptionModel createdSubscription = subscriptionService.createSubscription(subscriptionModel);
-            String responseMessage = String.format("Subscription created successfully with ID: %s, User ID: %s, Service ID: %s.",
-                    createdSubscription.getId(), createdSubscription.getUserId(), createdSubscription.getServiceId());
-
-            logger.info("Subscription created successfully for userId: {}", subscriptionModel.getUserId());
-            return ResponseEntity.ok(responseMessage);
-        } catch (DuplicateSubscriptionException e) {
-            logger.warn("message: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict: " + e.getMessage());
-        } catch (InvalidSubscriptionDatesException e) {
-            logger.warn("Bad Request: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Bad Request: " + e.getMessage());
-        } catch (Exception e) {
-            logger.error("Bad Request: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Bad Request: "+ e.getMessage());
-        }
-    }
-
-    @PutMapping("/update/{subscriptionId}")
-    @Operation(summary = "Update Subscription",
-            description = "Updates the subscription details for the specified subscription ID.", responses = {
-            @ApiResponse(description = "Subscription updated successfully"),
-            @ApiResponse(description = "Bad Request: Invalid subscription ID"),
-            @ApiResponse(description = "Unauthorized: Invalid or missing token")
-    })
-    public ResponseEntity<String> updateSubscription(
-            @PathVariable Integer subscriptionId,
-            @RequestBody @Valid SubscriptionModel subscriptionModel, @RequestHeader("Authorization") String token) {
-
-        logger.info("Attempting to update subscription with ID: {}", subscriptionId);
+    )
+    public ResponseEntity<String> createSubscription(@RequestHeader("Authorization") String token,
+                                                     @RequestHeader("UserId") String userId,
+                                                     @Valid @RequestBody SubscriptionModel subscriptionModel) {
+        logger.info("Attempting to create a subscription for userId: {}", userId);
 
         if (token == null || !token.startsWith("Bearer ")) {
             logger.warn("Unauthorized access attempt: Invalid or missing token.");
@@ -113,34 +54,71 @@ public class SubscriptionController {
         }
 
         String actualToken = token.substring(7);
+
         if (!authTokenService.isUserValid(actualToken)) {
             logger.warn("Unauthorized access attempt with invalid token.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid token");
         }
 
-        try {
-            SubscriptionModel updatedSubscription = subscriptionService.updateSubscription(subscriptionId, subscriptionModel);
-            String responseMessage = String.format("Subscription updated successfully with ID: %s.", updatedSubscription.getId());
+        authTokenService.validToken(token, Integer.parseInt(userId));
 
-            logger.info("Subscription with ID: {} updated successfully", subscriptionId);
-            return ResponseEntity.ok(responseMessage);
-        } catch (BusinessValidationException e) {
-            logger.error("Business validation error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Bad Request: " + e.getMessage());
+        subscriptionModel.setCreatedBy(userId);
+        subscriptionModel.setUpdatedBy(userId);
+        subscriptionModel.setEndDate(userId);
+        subscriptionModel.setUserId(userId);
+
+        try {
+            if (subscriptionModel.getServiceId() == null || subscriptionModel.getServiceId().isEmpty()) {
+                logger.warn("Invalid request: Service ID is missing.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("message: Service ID is required.");
+            }
+
+
+            if (subscriptionModel.getDbstatus() == Status.INACTIVE) {
+                logger.warn("Attempted to create an inactive subscription for userId: {}", userId);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("message: Inactive subscriptions cannot be created.");
+            }
+
+            // Validate subscription dates
+            if (subscriptionModel.getStartDate() == null) {
+                logger.warn("Invalid request: Start date is missing.");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("message: Start date are required.");
+            }
+
+            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), String.valueOf(subscriptionModel.getServiceId()));
+            if (hasActiveSubscription) {
+                logger.warn("Duplicate subscription attempt for serviceId: {} by userId: {}", subscriptionModel.getServiceId(), userId);
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("message: You already have an active subscription for this service.");
+            }
+
+            SubscriptionModel createdSubscription = subscriptionService.createSubscription(subscriptionModel);
+            String responseMessage = String.format("Subscription created successfully with ID: %s, User ID: %s, Service ID: %s.",
+                    createdSubscription.getId(), createdSubscription.getUserId(), createdSubscription.getServiceId());
+
+            logger.info("Subscription created successfully for userId: {}", userId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseMessage);
+
+        } catch (DuplicateSubscriptionException e) {
+            logger.warn("Duplicate subscription error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Conflict: " + e.getMessage());
+        } catch (InvalidDateFormatException e) {
+            logger.warn("Invalid subscription dates: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Bad Request: " + e.getMessage());
         } catch (Exception e) {
-            logger.error("An unexpected error occurred while updating the subscription: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Bad Request: Unable to update subscription. Please check your details.");
+            logger.error("An error occurred while creating the subscription: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Bad Request: " + e.getMessage());
         }
     }
 
-
     @PostMapping("/cancel/{subscriptionId}")
     @Operation(summary = "Cancel Subscription",
-            description = "Cancels the subscription for the specified subscription ID.", responses = {
-            @ApiResponse(responseCode = "200", description = "Subscription successfully cancelled"),
-            @ApiResponse(responseCode = "404", description = "Subscription not found")
-    })
-    public ResponseEntity<String> cancelSubscription(@PathVariable Integer subscriptionId, @RequestHeader("Authorization") String token) {
+            description = "Cancels the subscription for the specified subscription ID.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Subscription successfully cancelled"),
+                    @ApiResponse(responseCode = "404", description = "Subscription not found")
+            })
+    public ResponseEntity<String> cancelSubscription(@PathVariable Integer subscriptionId,
+                                                     @RequestHeader("Authorization") String token) {
         logger.info("Attempting to cancel subscription with ID: {}", subscriptionId);
 
         if (token == null || !token.startsWith("Bearer ")) {
@@ -148,14 +126,18 @@ public class SubscriptionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid or missing token");
         }
 
-        String actualToken = token.substring(7);
-        if (!authTokenService.isUserValid(actualToken)) {
-            logger.warn("Unauthorized access attempt with invalid token.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid token");
+        String actualToken = token.substring(7);  // Extract the actual token
+
+        Integer userId;
+        try {
+            userId = authTokenService.validToken(actualToken, subscriptionId); // Use the actual token to get userId
+        } catch (BusinessValidationException e) {
+            logger.warn("Unauthorized access attempt with invalid token: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: " + e.getMessage());
         }
 
         try {
-            subscriptionService.cancelSubscription(subscriptionId);
+            subscriptionService.cancelSubscription(subscriptionId, userId); // Pass subscriptionId and userId to service
             logger.info("Subscription with ID: {} cancelled successfully", subscriptionId);
             return ResponseEntity.ok("Subscription with ID " + subscriptionId + " successfully cancelled.");
         } catch (BusinessValidationException e) {

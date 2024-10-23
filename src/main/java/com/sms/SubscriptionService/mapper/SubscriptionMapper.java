@@ -2,7 +2,6 @@ package com.sms.SubscriptionService.mapper;
 
 import com.sms.SubscriptionService.entity.Subscription;
 import com.sms.SubscriptionService.enums.Status;
-import com.sms.SubscriptionService.enums.SubscriptionStatus;
 import com.sms.SubscriptionService.exception.custom.InvalidDateFormatException;
 import com.sms.SubscriptionService.model.SubscriptionModel;
 import com.sms.SubscriptionService.utils.DateUtils;
@@ -22,9 +21,6 @@ public class SubscriptionMapper {
         LocalDateTime startDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getStartDate());
         subscription.setStartDate(startDateTime);
 
-        LocalDateTime endDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getEndDate());
-        subscription.setEndDate(endDateTime);
-
         subscription.setDbstatus(Status.fromString(String.valueOf(subscriptionModel.getDbstatus())));
 
         return subscription;
@@ -40,8 +36,6 @@ public class SubscriptionMapper {
         String formattedStartDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getStartDate()));
         subscriptionModel.setStartDate(formattedStartDate);
 
-        String formattedEndDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getEndDate()));
-        subscriptionModel.setEndDate(formattedEndDate);
 
         subscriptionModel.setDbstatus(Status.valueOf(subscription.getDbstatus().name()));
 

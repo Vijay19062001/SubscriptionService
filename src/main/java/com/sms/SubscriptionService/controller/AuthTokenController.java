@@ -46,8 +46,8 @@ public class AuthTokenController {
             logger.error("Authentication failed for user: {}", userName);
             return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.UNAUTHORIZED);
         } catch (Exception e) {
-            logger.error("Internal server error during authentication: {}", e.getMessage());
-            return new ResponseEntity<>(Map.of("error", e.getMessage()), HttpStatus.UNAUTHORIZED);
+            logger.error("Duplicates Names are not allowed: {}", e.getMessage());
+            return new ResponseEntity<>(Map.of("error", "Duplicates Names are not allowed."), HttpStatus.BAD_REQUEST);
         }
     }
 }

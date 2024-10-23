@@ -13,17 +13,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
 @Service
 @RequiredArgsConstructor
 public class AuthTokenServiceImpl implements AuthTokenService {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthTokenServiceImpl.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -33,8 +34,6 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
     @Autowired
     private AuthTokenMapper authTokenMapper;
-
-    private static final Logger logger = LoggerFactory.getLogger(AuthTokenServiceImpl.class);
 
     @Override
     public Map<String, String> authenticateUser(String userName, String password) {
@@ -46,6 +45,13 @@ public class AuthTokenServiceImpl implements AuthTokenService {
                     return new BusinessValidationException("User not found");
                 });
 
+        // Check if the user's account is active
+        if (user.getDbstatus() != Status.ACTIVE) {
+            logger.error("User account is inactive: {}", userName);
+            throw new BusinessValidationException("User account is inactive");
+        }
+
+        // Validate password
         if (!password.equals(user.getPassword())) {
             logger.error("Invalid password for user: {}", userName);
             throw new BusinessValidationException("Invalid password");
@@ -68,63 +74,87 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
         String token = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expireDate = now.plusMinutes(2);
 
-        AuthTokens authTokens = authTokenMapper.toEntity(user, token, now);
-
+        AuthTokens authTokens = authTokenMapper.toEntity(user, token, expireDate);
         authTokenRepository.save(authTokens);
         logger.info("New token generated and saved for user: {}", user.getUserName());
 
+        // Return the generated token
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
 
         return response;
     }
 
+    @Override
     public boolean isUserValid(String token) {
         logger.info("Validating token: {}", token);
 
-        AuthTokens authToken = authTokenRepository.findByToken(token)
+        String strippedToken = token.startsWith("Bearer ") ? token.substring(7) : token;
+
+        AuthTokens authTokens = authTokenRepository.findByToken(strippedToken)
                 .orElseThrow(() -> {
-                    logger.error("Invalid token: {}", token);
+                    logger.error("Invalid token: {}", strippedToken);
                     return new BusinessValidationException("Invalid token");
                 });
 
-        if (authToken.getDbstatus() == Status.INACTIVE || LocalDate.now().isAfter(authToken.getExpireDate())) {
-            logger.error("Token is either inactive or expired: {}", token);
-            throw new BusinessValidationException("Token is a expired");
+        if (authTokens.getDbstatus() == Status.INACTIVE || LocalDateTime.now().isAfter(authTokens.getExpireDate())) {
+            logger.error("Token is expired: {}", strippedToken);
+            throw new BusinessValidationException("Token is expired");
         }
 
-        Users user = userRepository.findById(authToken.getUserId())
+        Users user = userRepository.findById(authTokens.getUserId())
                 .orElseThrow(() -> {
-                    logger.error("User not found for token: {}", token);
+                    logger.error("User not found for token: {}", strippedToken);
                     return new BusinessValidationException("User not found");
                 });
+
+        if (user.getDbstatus() != Status.ACTIVE) {
+            logger.error("User account is inactive: {}", user.getUserName());
+            throw new BusinessValidationException("User account is inactive");
+        }
 
         logger.info("Token validation successful for user: {}", user.getUserName());
-        return user != null;
+        return true;
     }
 
-    public String validToken(String token) {
-        logger.info("Refreshing token: {}", token);
+    @Override
+    public Integer validToken(String token, int userId) {
+        logger.info("Validating token: {} for userId: {}", token, userId);
 
-        AuthTokens authToken = authTokenRepository.findByToken(token)
+        String strippedToken = token.startsWith("Bearer ") ? token.substring(7) : token;
+
+        validateToken(strippedToken, userId);
+
+        return userId;
+    }
+
+    @Transactional
+    public void validateToken(String authToken, int userId) {
+        logger.info("Validating token: {} for userId: {}", authToken, userId);
+
+        AuthTokens authTokens = authTokenRepository.findByTokenAndDbstatus(authToken, Status.ACTIVE)
                 .orElseThrow(() -> {
-                    logger.error("Invalid token for refresh: {}", token);
-                    return new BusinessValidationException("Invalid token");
+                    logger.error("Token not found or inactive in repository: {}", authToken);
+                    return new BusinessValidationException("Invalid or inactive token provided");
                 });
 
-        if (authToken.getDbstatus() == Status.INACTIVE || LocalDate.now().isAfter(authToken.getExpireDate())) {
-            logger.error("Cannot refresh: Token is inactive or expired: {}", token);
-            throw new BusinessValidationException("Cannot refresh: Token is  a expired");
+        if (authTokens.getUserId() != userId) {
+            logger.error("User ID does not match for token: {}, expected: {}, found: {}", authToken, userId, authTokens.getUserId());
+            throw new BusinessValidationException("User ID does not match the token");
         }
 
-        Users user = userRepository.findById(authToken.getUserId())
-                .orElseThrow(() -> {
-                    logger.error("User not found for token refresh: {}", token);
-                    return new BusinessValidationException("User not found");
-                });
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isAfter(authTokens.getExpireDate())) {
+            logger.error("Token is expired. Current time: {}, Expiration time: {}", now, authTokens.getExpireDate());
 
-        logger.info("Token refreshed successfully for user: {}", user.getUserName());
-        return generateToken(user).get("token");
+            authTokens.setDbstatus(Status.INACTIVE);
+            authTokenRepository.save(authTokens);
+
+            throw new BusinessValidationException("Token is expired and now inactive");
+        }
+
+        logger.info("Token validation successful for userId: {}", userId);
     }
 }
