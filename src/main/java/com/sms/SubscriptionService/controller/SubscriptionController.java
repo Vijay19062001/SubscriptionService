@@ -1,11 +1,14 @@
 package com.sms.SubscriptionService.controller;
 
+import com.sms.SubscriptionService.entity.ServiceEntity;
 import com.sms.SubscriptionService.entity.Subscription;
-import com.sms.SubscriptionService.enums.Status;
 import com.sms.SubscriptionService.exception.custom.BusinessValidationException;
 import com.sms.SubscriptionService.exception.custom.DuplicateSubscriptionException;
 import com.sms.SubscriptionService.exception.custom.InvalidDateFormatException;
+import com.sms.SubscriptionService.exception.custom.SubscriptionNotFoundException;
+import com.sms.SubscriptionService.mapper.SubscriptionMapper;
 import com.sms.SubscriptionService.model.SubscriptionModel;
+import com.sms.SubscriptionService.repository.ServiceRepository;
 import com.sms.SubscriptionService.repository.SubscriptionRepository;
 import com.sms.SubscriptionService.service.AuthTokenService;
 import com.sms.SubscriptionService.service.SubscriptionService;
@@ -19,8 +22,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -31,7 +37,10 @@ public class SubscriptionController {
     private final SubscriptionService subscriptionService;
     private final AuthTokenService authTokenService;
     private final SubscriptionRepository subscriptionRepository;
+    private final ServiceRepository serviceRepository;
+    private final SubscriptionMapper subscriptionMapper;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionController.class);
+
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
@@ -44,58 +53,50 @@ public class SubscriptionController {
             }
     )
     public ResponseEntity<String> createSubscription(@RequestHeader("Authorization") String token,
-                                                     @RequestHeader("UserId") String userId,
-                                                     @Valid @RequestBody SubscriptionModel subscriptionModel) {
+                                                     @Valid @RequestBody Map<String, String> subscriptionData,SubscriptionModel subscriptionModel) {
+        String transactionId = subscriptionData.get("transactionId");
+        String subscriptionId = subscriptionData.get("subscriptionId");
+        String userId = subscriptionData.get("userId");
+        String createdBy = subscriptionData.get("createdBy");
+
         logger.info("Attempting to create a subscription for userId: {}", userId);
 
+        // Token validation
         if (token == null || !token.startsWith("Bearer ")) {
             logger.warn("Unauthorized access attempt: Invalid or missing token.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid or missing token");
         }
 
         String actualToken = token.substring(7);
-
         if (!authTokenService.isUserValid(actualToken)) {
             logger.warn("Unauthorized access attempt with invalid token.");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid token");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token");
         }
 
         authTokenService.validToken(token, Integer.parseInt(userId));
 
-        subscriptionModel.setCreatedBy(userId);
-        subscriptionModel.setUpdatedBy(userId);
-        subscriptionModel.setEndDate(userId);
-        subscriptionModel.setUserId(userId);
-
         try {
-            if (subscriptionModel.getServiceId() == null || subscriptionModel.getServiceId().isEmpty()) {
-                logger.warn("Invalid request: Service ID is missing.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("message: Service ID is required.");
-            }
-
-
-            if (subscriptionModel.getDbstatus() == Status.INACTIVE) {
-                logger.warn("Attempted to create an inactive subscription for userId: {}", userId);
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("message: Inactive subscriptions cannot be created.");
-            }
-
-            // Validate subscription dates
-            if (subscriptionModel.getStartDate() == null) {
-                logger.warn("Invalid request: Start date is missing.");
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("message: Start date are required.");
-            }
-
-            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), String.valueOf(subscriptionModel.getServiceId()));
+            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), subscriptionId);
             if (hasActiveSubscription) {
-                logger.warn("Duplicate subscription attempt for serviceId: {} by userId: {}", subscriptionModel.getServiceId(), userId);
+                logger.warn("Duplicate subscription attempt for serviceId: {} by userId: {}", subscriptionId, userId);
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("message: You already have an active subscription for this service.");
             }
 
-            SubscriptionModel createdSubscription = subscriptionService.createSubscription(subscriptionModel);
+            ServiceEntity service = serviceRepository.findById(Integer.parseInt(subscriptionId))
+                    .orElseThrow(() -> new SubscriptionNotFoundException("Service not found with ID: " + subscriptionId));
+
+
+            SubscriptionModel createdSubscription = subscriptionService.createSubscription(subscriptionModel, transactionId, subscriptionId, userId, createdBy);
+
+            logger.info("Subscription completed - subscriptionId: {}, transactionId: {}",
+                    createdSubscription.getId(), createdSubscription.getTransactionId());
+
+            logger.info("Subscription completed - subscriptionId: {}, transactionId: {}",
+                    createdSubscription.getId(), createdSubscription.getTransactionId());
+
             String responseMessage = String.format("Subscription created successfully with ID: %s, User ID: %s, Service ID: %s.",
                     createdSubscription.getId(), createdSubscription.getUserId(), createdSubscription.getServiceId());
 
-            logger.info("Subscription created successfully for userId: {}", userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(responseMessage);
 
         } catch (DuplicateSubscriptionException e) {
@@ -110,15 +111,21 @@ public class SubscriptionController {
         }
     }
 
+
     @PostMapping("/cancel/{subscriptionId}")
     @Operation(summary = "Cancel Subscription",
             description = "Cancels the subscription for the specified subscription ID.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Subscription successfully cancelled"),
+                    @ApiResponse(responseCode = "401", description = "Unauthorized: Invalid or missing token"),
                     @ApiResponse(responseCode = "404", description = "Subscription not found")
             })
-    public ResponseEntity<String> cancelSubscription(@PathVariable Integer subscriptionId,
-                                                     @RequestHeader("Authorization") String token) {
+    public ResponseEntity<String> cancelSubscription(
+            @PathVariable("subscriptionId") Integer subscriptionId,
+            @RequestHeader("UserId") Integer userId,
+            @RequestHeader("Authorization") String token,
+            @Valid @RequestBody(required = false) SubscriptionModel subscriptionModel) {
+
         logger.info("Attempting to cancel subscription with ID: {}", subscriptionId);
 
         if (token == null || !token.startsWith("Bearer ")) {
@@ -126,28 +133,27 @@ public class SubscriptionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid or missing token");
         }
 
-        String actualToken = token.substring(7);  // Extract the actual token
-
-        Integer userId;
-        try {
-            userId = authTokenService.validToken(actualToken, subscriptionId); // Use the actual token to get userId
-        } catch (BusinessValidationException e) {
-            logger.warn("Unauthorized access attempt with invalid token: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: " + e.getMessage());
+        String actualToken = token.substring(7);
+        if (!authTokenService.isUserValid(actualToken)) {
+            logger.warn("Unauthorized access attempt with invalid token.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid token");
         }
 
-        try {
-            subscriptionService.cancelSubscription(subscriptionId, userId); // Pass subscriptionId and userId to service
-            logger.info("Subscription with ID: {} cancelled successfully", subscriptionId);
-            return ResponseEntity.ok("Subscription with ID " + subscriptionId + " successfully cancelled.");
-        } catch (BusinessValidationException e) {
-            logger.error("Business validation error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Bad Request: " + e.getMessage());
-        } catch (Exception e) {
-            logger.error("An unexpected error occurred while cancelling the subscription: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Bad Request: Unable to cancel subscription.");
+        authTokenService.validToken(actualToken, userId);
+
+        if (subscriptionModel != null) {
+            subscriptionModel.setCreatedBy(userId.toString());
+            subscriptionModel.setUpdatedBy(userId.toString());
+            subscriptionModel.setEndDate(String.valueOf(LocalDateTime.now()));
+            subscriptionModel.setUserId(String.valueOf(userId));
         }
+
+        subscriptionService.cancelSubscription(subscriptionId, userId);
+
+        logger.info("Subscription with ID: {} cancelled successfully", subscriptionId);
+        return ResponseEntity.ok("Subscription with ID " + subscriptionId + " successfully cancelled.");
     }
+
 
     @GetMapping("/details")
     @Operation(summary = "Get Subscription Details",

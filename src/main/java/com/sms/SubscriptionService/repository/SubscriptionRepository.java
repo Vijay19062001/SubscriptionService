@@ -13,8 +13,10 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
 
     List<Subscription> findByUserIdAndDbstatus(Integer userId, Status dbstatus);
     List<Subscription> findByUserId(Integer userId);
-
     boolean existsByUserIdAndServiceIdAndDbstatus(Integer userId, Integer serviceId, Status dbstatus);
     Optional<Subscription> findById(Integer subscriptionId);
+    Optional<Subscription> findByUserIdAndIdAndDbstatus(Integer userId, Integer subscriptionId, Status dbstatus);
+
+
 
 }

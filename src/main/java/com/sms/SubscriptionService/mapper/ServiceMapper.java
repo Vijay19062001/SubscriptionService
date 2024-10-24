@@ -1,6 +1,6 @@
 package com.sms.SubscriptionService.mapper;
 
-import com.sms.SubscriptionService.entity.Service;
+import com.sms.SubscriptionService.entity.ServiceEntity;
 import com.sms.SubscriptionService.exception.custom.InvalidDateFormatException;
 import com.sms.SubscriptionService.model.ServiceModel;
 import org.springframework.stereotype.Component;
@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class ServiceMapper {
 
-    public Service toEntity(ServiceModel serviceModel) throws InvalidDateFormatException {
+    public ServiceEntity toEntity(ServiceModel serviceModel) throws InvalidDateFormatException {
 
-        Service service = new Service();
+        ServiceEntity service = new ServiceEntity();
         service.setServiceName(serviceModel.getServiceName());
         service.setDescription(serviceModel.getDescription());
         service.setDurationDays(serviceModel.getDurationDays());
@@ -19,7 +19,7 @@ public class ServiceMapper {
         return service;
     }
 
-    public ServiceModel toModel(Service service)throws InvalidDateFormatException {
+    public ServiceModel toModel(ServiceEntity service)throws InvalidDateFormatException {
 
         ServiceModel serviceModel = new ServiceModel();
         serviceModel.setId(service.getId());

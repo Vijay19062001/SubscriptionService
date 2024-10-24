@@ -1,5 +1,6 @@
 package com.sms.SubscriptionService.service.servicesImpl;
 
+import com.sms.SubscriptionService.entity.ServiceEntity;
 import com.sms.SubscriptionService.enums.Status;
 import com.sms.SubscriptionService.exception.custom.*;
 import com.sms.SubscriptionService.mapper.SubscriptionMapper;
@@ -41,11 +42,14 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Transactional
     @Override
-    public SubscriptionModel createSubscription(SubscriptionModel subscriptionModel) {
+    public SubscriptionModel createSubscription(SubscriptionModel subscriptionModel, String transactionId, String subscriptionId, String userId, String createdBy) {
         logger.info("Starting subscription creation for user ID {}", subscriptionModel.getUserId());
 
         Integer serviceId = Integer.valueOf(subscriptionModel.getServiceId());
+        ServiceEntity service =  serviceRepository.findByIdAndDbstatus(serviceId, Status.ACTIVE)
+                .orElseThrow(() -> new BusinessValidationException("Service not found or inactive with ID: " + serviceId));
 
+        validateSubscriptionDates(subscriptionModel.getStartDate());
 
         if (subscriptionModel.getDbstatus() == Status.ACTIVE) {
             if (subscriptionRepository.existsByUserIdAndServiceIdAndDbstatus(
@@ -61,8 +65,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         if (!isValidDbStatus(subscriptionModel.getDbstatus())) {
             throw new BusinessValidationException("Invalid subscription status. Must be 'ACTIVE'.");
         }
-
-        validateSubscriptionDates(subscriptionModel.getStartDate());
 
         Subscription subscription = subscriptionMapper.toEntity(subscriptionModel);
         LocalDateTime now = LocalDateTime.now();
@@ -85,12 +87,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return dbstatus == Status.ACTIVE;
     }
 
+
     @Override
     public boolean checkActiveSubscription(Integer userId, String serviceId) {
         return subscriptionRepository.existsByUserIdAndServiceIdAndDbstatus(userId, Integer.valueOf(serviceId), Status.ACTIVE);
     }
 
-   @Override
+
     public List<SubscriptionModel> getSubscriptionUserId(Integer userId, Status status) {
         if (status == Status.INACTIVE) {
             throw new BusinessValidationException(" subscriptions as the status is inactive.");
@@ -164,29 +167,32 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         existingSubscription.setUpdatedDate(LocalDateTime.now());
     }
 
-
     @Override
     public void cancelSubscription(Integer subscriptionId, Integer userId) {
         logger.info("Attempting to cancel subscription with ID {} for user ID {}", subscriptionId, userId);
 
-        // Validate if the user exists
         boolean userExists = userRepository.existsById(userId);
         if (!userExists) {
             logger.error("User with ID {} not found. Cancellation failed.", userId);
             throw new SubscriptionNotFoundException("User with ID " + userId + " not found.");
         }
 
-        Subscription subscription = subscriptionRepository.findById(subscriptionId)
-                .orElseThrow(() -> new SubscriptionNotFoundException("Subscription with ID '" + subscriptionId + "' not found."));
+        Subscription subscription = subscriptionRepository
+                .findByUserIdAndIdAndDbstatus(userId, subscriptionId, Status.ACTIVE)
+                .orElse(null);
+
+        if (subscription == null) {
+            logger.error("No active subscription found for subscription ID {}, user ID {}.", subscriptionId, userId);
+            throw new SubscriptionNotFoundException("Active subscription with ID not found.");
+        }
 
         subscription.setDbstatus(Status.INACTIVE);
         subscription.setUpdatedBy("Admin");
         subscription.setUpdatedDate(LocalDateTime.now());
         subscriptionRepository.save(subscription);
 
-        logger.info("Subscription with ID {} successfully cancelled for user ID {}", subscriptionId, userId);
+        logger.info("Subscription with ID {} successfully cancelled.", subscriptionId);
     }
-
 
 
     @Override

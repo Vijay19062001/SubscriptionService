@@ -51,4 +51,7 @@ public class Subscription {
     @Column(name = "updated_by", nullable = false)
     private String updatedBy;
 
+    @Column(name = "transaction_id", nullable = false)
+    private int transactionId;
+
 }
