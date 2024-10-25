@@ -1,6 +1,6 @@
 package com.sms.SubscriptionService.controller;
 
-import com.sms.SubscriptionService.entity.ServiceEntity;
+
 import com.sms.SubscriptionService.entity.Subscription;
 import com.sms.SubscriptionService.exception.custom.BusinessValidationException;
 import com.sms.SubscriptionService.exception.custom.DuplicateSubscriptionException;
@@ -41,7 +41,6 @@ public class SubscriptionController {
     private final SubscriptionMapper subscriptionMapper;
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionController.class);
 
-
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Create Subscription", description = "Creates a new subscription with the provided details.",
@@ -53,50 +52,41 @@ public class SubscriptionController {
             }
     )
     public ResponseEntity<String> createSubscription(@RequestHeader("Authorization") String token,
-                                                     @Valid @RequestBody Map<String, String> subscriptionData,SubscriptionModel subscriptionModel) {
-        String transactionId = subscriptionData.get("transactionId");
-        String subscriptionId = subscriptionData.get("subscriptionId");
-        String userId = subscriptionData.get("userId");
-        String createdBy = subscriptionData.get("createdBy");
-
+                                                     @RequestHeader("UserId") String userId,
+                                                     @Valid @RequestBody SubscriptionModel subscriptionModel) {
         logger.info("Attempting to create a subscription for userId: {}", userId);
 
-        // Token validation
         if (token == null || !token.startsWith("Bearer ")) {
             logger.warn("Unauthorized access attempt: Invalid or missing token.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid or missing token");
         }
 
         String actualToken = token.substring(7);
+
+        // Validate the user token
         if (!authTokenService.isUserValid(actualToken)) {
             logger.warn("Unauthorized access attempt with invalid token.");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid token");
         }
 
-        authTokenService.validToken(token, Integer.parseInt(userId));
+        // Associate the subscription with the user
+        subscriptionModel.setCreatedBy(userId);
+        subscriptionModel.setUpdatedBy(userId);
+        subscriptionModel.setUserId(userId);
 
         try {
-            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), subscriptionId);
+            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), String.valueOf(subscriptionModel.getServiceId()));
+
             if (hasActiveSubscription) {
-                logger.warn("Duplicate subscription attempt for serviceId: {} by userId: {}", subscriptionId, userId);
+                logger.warn("Duplicate subscription attempt for serviceId: {} by userId: {}", subscriptionModel.getServiceId(), userId);
                 return ResponseEntity.status(HttpStatus.CONFLICT).body("message: You already have an active subscription for this service.");
             }
 
-            ServiceEntity service = serviceRepository.findById(Integer.parseInt(subscriptionId))
-                    .orElseThrow(() -> new SubscriptionNotFoundException("Service not found with ID: " + subscriptionId));
-
-
-            SubscriptionModel createdSubscription = subscriptionService.createSubscription(subscriptionModel, transactionId, subscriptionId, userId, createdBy);
-
-            logger.info("Subscription completed - subscriptionId: {}, transactionId: {}",
-                    createdSubscription.getId(), createdSubscription.getTransactionId());
-
-            logger.info("Subscription completed - subscriptionId: {}, transactionId: {}",
-                    createdSubscription.getId(), createdSubscription.getTransactionId());
-
+            SubscriptionModel createdSubscription = subscriptionService.createSubscription(subscriptionModel);
             String responseMessage = String.format("Subscription created successfully with ID: %s, User ID: %s, Service ID: %s.",
                     createdSubscription.getId(), createdSubscription.getUserId(), createdSubscription.getServiceId());
 
+            logger.info("Subscription created successfully for userId: {}", userId);
             return ResponseEntity.status(HttpStatus.CREATED).body(responseMessage);
 
         } catch (DuplicateSubscriptionException e) {
@@ -110,7 +100,6 @@ public class SubscriptionController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Bad Request: " + e.getMessage());
         }
     }
-
 
     @PostMapping("/cancel/{subscriptionId}")
     @Operation(summary = "Cancel Subscription",
@@ -139,7 +128,7 @@ public class SubscriptionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized: Invalid token");
         }
 
-        authTokenService.validToken(actualToken, userId);
+        authTokenService.validToken(actualToken, (userId));
 
         if (subscriptionModel != null) {
             subscriptionModel.setCreatedBy(userId.toString());
@@ -162,7 +151,8 @@ public class SubscriptionController {
             @ApiResponse(responseCode = "404", description = "No subscriptions found"),
             @ApiResponse(responseCode = "401", description = "Unauthorized: Invalid or missing token")
     })
-    public ResponseEntity<List<Subscription>> getSubscriptionDetails(@RequestHeader("Authorization") String token, @RequestParam String userId) {
+
+    public ResponseEntity<List<Subscription>> getSubscriptionDetails(@RequestHeader("Authorization") String token, @RequestHeader("UserId") String userId) {
         logger.info("Retrieving subscription details for userId: {}", userId);
 
         if (token == null || !token.startsWith("Bearer ")) {
@@ -176,17 +166,35 @@ public class SubscriptionController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
         }
 
-        try {
             List<Subscription> subscriptions = subscriptionService.getSubscriptionDetails(Integer.valueOf(userId));
             if (subscriptions.isEmpty()) {
-                logger.warn("No subscriptions found for userId: {}", userId);
-                return ResponseEntity.notFound().build();
+                logger.warn("No active subscriptions found for userId: {}", userId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
-            logger.info("Successfully retrieved subscriptions for userId: {}", userId);
+
+            logger.info("Successfully retrieved active subscriptions for userId: {}", userId);
             return ResponseEntity.ok(subscriptions);
-        } catch (Exception e) {
-            logger.error("An unexpected error occurred while retrieving subscription details: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Collections.emptyList());
-        }
     }
+
+    @GetMapping("/{subscriptionId}")
+    @Operation(summary = "Get Subscription Details by Subscription ID",
+                description = "Retrieves subscription details for a specific subscription ID.", responses = {
+                @ApiResponse(responseCode = "200", description = "Subscription details retrieved successfully"),
+                @ApiResponse(responseCode = "404", description = "No subscriptions found for the given ID"),
+                @ApiResponse(responseCode = "400", description = "Invalid Subscription ID format")
+    })
+    public ResponseEntity<List<Subscription>> getSubscriptionById(@PathVariable Integer subscriptionId) {
+            logger.info("Received request to fetch subscription details for subscription ID: {}", subscriptionId);
+
+            try {
+                List<Subscription> subscriptions = subscriptionService.getSubscriptionId(subscriptionId);
+                return ResponseEntity.ok(subscriptions);
+            } catch (SubscriptionNotFoundException e) {
+                logger.error("Error fetching subscriptions: {}", e.getMessage());
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            } catch (IllegalArgumentException e) {
+                logger.error("Invalid subscription ID provided: {}", subscriptionId);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            }
+        }
 }

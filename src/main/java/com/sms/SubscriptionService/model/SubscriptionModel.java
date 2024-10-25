@@ -28,8 +28,6 @@ public class SubscriptionModel {
     private String updatedDate;
     private String createdBy;
     private String updatedBy;
-    private String transactionId;
-
 
 
 }

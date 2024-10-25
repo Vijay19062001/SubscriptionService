@@ -1,6 +1,7 @@
 package com.sms.SubscriptionService.service.servicesImpl;
 
 import com.sms.SubscriptionService.entity.ServiceEntity;
+import com.sms.SubscriptionService.entity.Users;
 import com.sms.SubscriptionService.enums.Status;
 import com.sms.SubscriptionService.exception.custom.*;
 import com.sms.SubscriptionService.mapper.SubscriptionMapper;
@@ -11,18 +12,30 @@ import com.sms.SubscriptionService.repository.SubscriptionRepository;
 import com.sms.SubscriptionService.repository.UserRepository;
 import com.sms.SubscriptionService.service.SubscriptionService;
 import com.sms.SubscriptionService.utils.DateUtils;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.spring6.SpringTemplateEngine;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
-import java.util.stream.Collectors;
+
+
 
 @Service
 @RequiredArgsConstructor
@@ -36,13 +49,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     private final SubscriptionMapper subscriptionMapper;
     @Autowired
     private UserRepository userRepository;
+    @PersistenceContext
+    private final EntityManager entityManager;
+    private final JavaMailSender mailSender;
+    private final SpringTemplateEngine templateEngine;
 
+    @Value("${scheduler.enabled}")
+    private boolean isSchedulerEnabled;
     @Autowired
     private ServiceRepository serviceRepository;
 
     @Transactional
     @Override
-    public SubscriptionModel createSubscription(SubscriptionModel subscriptionModel, String transactionId, String subscriptionId, String userId, String createdBy) {
+    public SubscriptionModel createSubscription(SubscriptionModel subscriptionModel) {
         logger.info("Starting subscription creation for user ID {}", subscriptionModel.getUserId());
 
         Integer serviceId = Integer.valueOf(subscriptionModel.getServiceId());
@@ -93,16 +112,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return subscriptionRepository.existsByUserIdAndServiceIdAndDbstatus(userId, Integer.valueOf(serviceId), Status.ACTIVE);
     }
 
-
-    public List<SubscriptionModel> getSubscriptionUserId(Integer userId, Status status) {
-        if (status == Status.INACTIVE) {
-            throw new BusinessValidationException(" subscriptions as the status is inactive.");
-        }
-        List<Subscription> subscriptions = subscriptionRepository.findByUserIdAndDbstatus(userId, status);
-        return subscriptions.stream()
-                .map(subscriptionMapper::toModel)
-                .collect (Collectors.toList());
-    }
 
     private void validateSubscriptionDates(String startDate) {
         if (startDate == null) {
@@ -169,7 +178,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public void cancelSubscription(Integer subscriptionId, Integer userId) {
-        logger.info("Attempting to cancel subscription with ID {} for user ID {}", subscriptionId, userId);
+        logger.info("Attempting to cancel subscription with ID {}.", subscriptionId);
 
         boolean userExists = userRepository.existsById(userId);
         if (!userExists) {
@@ -178,17 +187,18 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         }
 
         Subscription subscription = subscriptionRepository
-                .findByUserIdAndIdAndDbstatus(userId, subscriptionId, Status.ACTIVE)
+                .findByUserIdAndIdAndDbstatus(userId,subscriptionId, Status.ACTIVE)
                 .orElse(null);
 
         if (subscription == null) {
-            logger.error("No active subscription found for subscription ID {}, user ID {}.", subscriptionId, userId);
-            throw new SubscriptionNotFoundException("Active subscription with ID not found.");
+            logger.error("No active subscription found for subscription ID {}.", subscriptionId);
+            throw new SubscriptionNotFoundException("Active subscription with ID '" + subscriptionId +"' not found.");
         }
 
         subscription.setDbstatus(Status.INACTIVE);
         subscription.setUpdatedBy("Admin");
         subscription.setUpdatedDate(LocalDateTime.now());
+
         subscriptionRepository.save(subscription);
 
         logger.info("Subscription with ID {} successfully cancelled.", subscriptionId);
@@ -196,7 +206,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
 
     @Override
-    public List<Subscription> getSubscriptionDetails(Integer subscriptionId) {
+    public List<Subscription> getSubscriptionId(Integer subscriptionId) {
         logger.info("Fetching subscription details for user ID {}", subscriptionId);
         if (subscriptionId == null || subscriptionId <= 0) {
             logger.error("Invalid user ID format for fetching subscription details");
@@ -209,7 +219,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             throw new SubscriptionNotFoundException("User with userId " + subscriptionId + " not found.");
         }
 
-        List<Subscription> subscriptions = subscriptionRepository.findByUserId(subscriptionId);
+        List<Subscription> subscriptions = subscriptionRepository.findByServiceIdAndDbstatus(subscriptionId, Status.ACTIVE);
 
         if (subscriptions.isEmpty()) {
             logger.warn("No subscriptions found for user ID {}", subscriptionId);
@@ -219,9 +229,110 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         return subscriptions;
     }
 
+
     @Override
-    public List<Subscription> getAllSubscriptions() {
-        logger.info("Fetching all subscriptions");
-        return subscriptionRepository.findAll();
+    public List<Subscription> getSubscriptionDetails(Integer userId) {
+        return subscriptionRepository.findByUserIdAndDbstatus(userId, Status.ACTIVE);
     }
+
+    private void sendSubscriptionConfirmationEmail(Subscription subscription, ServiceEntity service) {
+        // Retrieve the user details
+        Users user = userRepository.findById(subscription.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + subscription.getUserId()));
+
+        // Prepare email content using Thymeleaf template engine (or any other engine you are using)
+        Context context = new Context();
+        context.setVariable("userName", user.getUserName());
+        context.setVariable("userEmail", user.getEmail());
+        context.setVariable("serviceName", service.getServiceName());
+        context.setVariable("subscriptionStartDate", subscription.getStartDate());
+        context.setVariable("subscriptionEndDate", subscription.getEndDate());
+
+        String emailContent = templateEngine.process("SubscriptionConfirmationTemplate", context);
+
+        MimeMessage mailMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mailMessage);
+
+        try {
+            helper.setTo(user.getEmail());
+            helper.setSubject("Subscription Confirmation for " + service.getServiceName());
+            helper.setText(emailContent, true);
+            mailSender.send(mailMessage);
+
+            logger.info("Subscription confirmation email sent to {}", user.getEmail());
+        } catch (MessagingException e) {
+            logger.error("Failed to send email to {}", user.getEmail(), e);
+            throw new RuntimeException("Failed to send subscription confirmation email", e);
+        }
+    }
+
+
+    @Scheduled(cron = "${scheduler.cron}")
+    public void scheduleDailySubscriptionReminder() {
+        logger.info("Scheduling daily subscription reminder emails.");
+
+        if (!isSchedulerEnabled) {
+            logger.info("Scheduler is disabled. Skipping daily subscription reminder emails.");
+            return;
+        }
+
+        logger.info("Starting scheduled task to send daily subscription reminder emails.");
+
+        try {
+            List<Users> allUsers = userRepository.findAll();
+            logger.info("Found {} users to send subscription reminders.", allUsers.size());
+
+            for (Users user : allUsers) {
+                try {
+                    logger.info("Preparing email for user: {}", user.getId());
+
+                    List<Subscription> subscriptions = subscriptionRepository
+                            .findByUserIdAndEndDateBetween(user.getId(), LocalDate.now().minusDays(3), LocalDate.now());
+
+
+                    if (!subscriptions.isEmpty()) {
+                        sendSubscriptionReminderEmail(user, subscriptions);
+                        logger.info("Successfully sent email to user: {}", user.getId());
+
+                    } else {
+                        logger.info("No subscriptions found nearing expiration for user: {}", user.getId());
+                    }
+
+                } catch (Exception e) {
+                    logger.error("Failed to send subscription reminder to user: {}", user.getId(), e);
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Unexpected error in scheduleDailySubscriptionReminder", e);
+        }
+    }
+
+    private void sendSubscriptionReminderEmail(Users user, List<Subscription> subscriptions) {
+        // Prepare email content using Thymeleaf or any other engine
+        Context context = new Context();
+        context.setVariable("userName", user.getUserName());
+        context.setVariable("userEmail", user.getEmail());
+        context.setVariable("subscriptions", subscriptions); // Include list of subscriptions
+
+        String emailContent = templateEngine.process("SubscriptionReminderTemplate", context);
+
+        MimeMessage mailMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mailMessage);
+
+        try {
+            helper.setTo(user.getEmail());
+            helper.setSubject("Subscription Reminder: Services Nearing Expiration");
+            helper.setText(emailContent, true); // true for HTML content
+            mailSender.send(mailMessage);
+
+            logger.info("Subscription reminder email sent to {}", user.getEmail());
+        } catch (MessagingException e) {
+            logger.error("Failed to send subscription reminder to {}", user.getEmail(), e);
+            throw new RuntimeException("Failed to send subscription reminder email", e);
+        }
+    }
+
+
+
 }

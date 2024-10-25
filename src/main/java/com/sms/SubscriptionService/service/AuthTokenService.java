@@ -8,4 +8,5 @@ public interface AuthTokenService {
     public Integer validToken(String token, int userId) ;
     public boolean isUserValid(String authToken) ;
 
+
     }

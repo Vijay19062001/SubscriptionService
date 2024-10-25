@@ -17,7 +17,6 @@ public class SubscriptionMapper {
 
         subscription.setUserId(Integer.parseInt(subscriptionModel.getUserId()));
         subscription.setServiceId(Integer.parseInt(subscriptionModel.getServiceId()));
-        subscription.setTransactionId(Integer.parseInt(subscriptionModel.getTransactionId()));
         LocalDateTime startDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getStartDate());
         subscription.setStartDate(startDateTime);
 
@@ -32,11 +31,8 @@ public class SubscriptionMapper {
         subscriptionModel.setId(String.valueOf(subscription.getId()));
         subscriptionModel.setUserId(String.valueOf(subscription.getUserId()));
         subscriptionModel.setServiceId(String.valueOf(subscription.getServiceId()));
-        subscriptionModel.setTransactionId(String.valueOf(subscription.getTransactionId()));
-
         String formattedStartDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getStartDate()));
         subscriptionModel.setStartDate(formattedStartDate);
-
 
         subscriptionModel.setDbstatus(Status.valueOf(subscription.getDbstatus().name()));
 
