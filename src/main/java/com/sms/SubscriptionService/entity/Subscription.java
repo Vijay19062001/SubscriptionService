@@ -1,7 +1,6 @@
 package com.sms.SubscriptionService.entity;
 
 import com.sms.SubscriptionService.enums.Status;
-import com.sms.SubscriptionService.enums.SubscriptionStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,6 +33,9 @@ public class Subscription {
 
     @Column(name = "end_date", nullable = false)
     private LocalDateTime endDate;
+
+    @Column(name ="transaction_id", nullable = false)
+    private int transactionId;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

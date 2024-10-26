@@ -3,6 +3,7 @@ package com.sms.SubscriptionService.service.servicesImpl;
 import com.sms.SubscriptionService.entity.AuthTokens;
 import com.sms.SubscriptionService.entity.Users;
 import com.sms.SubscriptionService.enums.Status;
+import com.sms.SubscriptionService.exception.custom.BasicValidationException;
 import com.sms.SubscriptionService.exception.custom.BusinessValidationException;
 import com.sms.SubscriptionService.mapper.AuthTokenMapper;
 import com.sms.SubscriptionService.repository.AuthTokenRepository;
@@ -45,13 +46,11 @@ public class AuthTokenServiceImpl implements AuthTokenService {
                     return new BusinessValidationException("User not found");
                 });
 
-        // Check if the user's account is active
         if (user.getDbstatus() != Status.ACTIVE) {
             logger.error("User account is inactive: {}", userName);
             throw new BusinessValidationException("User account is inactive");
         }
 
-        // Validate password
         if (!password.equals(user.getPassword())) {
             logger.error("Invalid password for user: {}", userName);
             throw new BusinessValidationException("Invalid password");
@@ -62,6 +61,14 @@ public class AuthTokenServiceImpl implements AuthTokenService {
     }
 
     private Map<String, String> generateToken(Users user) {
+        if (user.getUserName() == null || user.getUserName().isEmpty()) {
+            throw new BasicValidationException("Username cannot be null or empty.");
+        }
+
+        if (!user.getUserName().matches("^[a-zA-Z0-9@._-]+$")) {
+            throw new BasicValidationException("Username can only contain letters, numbers, and special symbols (@, ., _, -).");
+        }
+
         logger.info("Generating new token for user: {}", user.getUserName());
 
         List<AuthTokens> existingTokens = authTokenRepository.findByUserIdAndDbstatus(user.getId(), Status.ACTIVE);
@@ -74,7 +81,7 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
         String token = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expireDate = now.plusMinutes(2);
+        LocalDateTime expireDate = now.plusMinutes(3);
 
         AuthTokens authTokens = authTokenMapper.toEntity(user, token, expireDate);
         authTokenRepository.save(authTokens);

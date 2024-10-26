@@ -70,8 +70,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
-    @ExceptionHandler(InvalidPaymentException.class)
-    public ResponseEntity<String> handleInvalidPayment(InvalidPaymentException ex) {
+    @ExceptionHandler(PaymentFailedException.class)
+    public ResponseEntity<String> handleInvalidPayment(PaymentFailedException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
