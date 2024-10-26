@@ -65,25 +65,19 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
         validateSubscriptionDates(subscriptionModel.getStartDate());
 
-//        if (service.getDbstatus()) {
             if (subscriptionRepository.existsByUserIdAndServiceIdAndDbstatus(
                     Integer.valueOf(subscriptionModel.getUserId()),
                     serviceId,
                     Status.ACTIVE)) {
                 throw new DuplicateSubscriptionException("User already has an active subscription for this service.");
             }
-//        } else if (subscriptionModel.getDbstatus() == Status.INACTIVE) {
-//            throw new BusinessValidationException("Cannot create a subscription with an inactive status.");
-//        }
-
-//        if (!isValidDbStatus(subscriptionModel.getDbstatus())) {
-//            throw new BusinessValidationException("Invalid subscription status. Must be 'ACTIVE'.");
-//        }
 
         Subscription subscription = subscriptionMapper.toEntity(subscriptionModel,users);
 
-
         Subscription savedSubscription = subscriptionRepository.save(subscription);
+
+//        List<Subscription> subscriptionList = subscriptionRepository.findAllByUserId(users.getId());
+//        sendSubscriptionReminderEmail(users, subscriptionList);
 
         logger.info("Subscription created successfully for user ID {}", subscriptionModel.getUserId());
 

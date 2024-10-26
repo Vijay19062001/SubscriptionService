@@ -17,5 +17,5 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, Inte
     Optional<Subscription> findById(Integer id);
     Optional<Subscription> findByUserIdAndIdAndDbstatus(Integer userId, Integer id, Status dbstatus);
     List<Subscription> findByUserIdAndEndDateBetween(Integer userId, LocalDate startDate, LocalDate endDate);
-
+    List<Subscription> findAllByUserId(int id);
 }
