@@ -28,6 +28,8 @@ public class UsersModel {
             message = "Email should be in a valid format.")
     private String email;
 
+    private String name;
+
     @NotNull(message = "Password cannot be null.")
     @Size(min = 8, message = "Password must be at least 8 characters long.")
     @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[!@#$%^&*])[A-Za-z\\d!@#$%^&*]{8,}$",

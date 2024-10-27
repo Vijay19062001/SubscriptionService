@@ -18,30 +18,28 @@
     <div class="header">
         <h1>Hotstar Subscription Service</h1>
     </div>
-    <h3>Hello, <span th:text="${userName}"></span>!</h3>
-    <p>Your subscription is nearing expiration or has been deactivated. Here are the details:</p>
+    <h3>Hello, <span th:text="${Name}"></span>!</h3>
+    <p>Your subscription is confirmation, Here are the details:</p>
     <h4>Subscription Details:</h4>
     <p><strong>Service Name:</strong> <span th:text="${serviceName}"></span></p>
     <p><strong>Subscription ID:</strong> <span th:text="${subscriptionId}"></span></p>
     <p><strong>Start Date:</strong> <span th:text="${startDate}"></span></p>
-    <p><strong>End Date:</strong> <span th:text="${endDate}"></span></p>
-    <h4>Other Subscriptions:</h4>
+    <p><strong>Expiry Date:</strong> <span th:text="${endDate}"></span></p>
+
     <table>
         <thead>
-        <tr><th>Service Name</th><th>Status</th><th>Subscription Start Date</th><th>Subscription End Date</th></tr>
+        <tr><th>Service Name</th><th>Status</th><th>Subscription Start Date</th><th>Subscription Expiry Date</th></tr>
         </thead>
         <tbody>
         <tr th:each="subscription : ${allSubscriptions}">
             <td th:text="${subscription.serviceName}"></td>
-            <td th:text="${subscription.dbstatus}"></td>
             <td th:text="${subscription.startDate}"></td>
             <td th:text="${subscription.endDate}"></td>
         </tr>
         </tbody>
     </table>
     <div class="footer">
-        <p>Thank you for choosing Hotstar Subscription Service!</p>
-        <p>Hotstar Team</p>
+        <p>Thank you for Subscription Service!</p>
     </div>
 </div>
 </body>

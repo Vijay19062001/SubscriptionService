@@ -27,11 +27,9 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -94,7 +92,7 @@ public class SubscriptionController {
         PaymentRequestDTO paymentRequestDTO = subscriptionRequest.getPaymentRequestDTO();
 
         try {
-            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), subscriptionModel.getServiceId().toString());
+            boolean hasActiveSubscription = subscriptionService.checkActiveSubscription(Integer.valueOf(userId), subscriptionModel.getServiceId());
 
             if (hasActiveSubscription) {
                 logger.warn("Duplicate subscription attempt for serviceId: {} by userId: {}", subscriptionModel.getServiceId(), userId);
@@ -179,7 +177,15 @@ public class SubscriptionController {
     }
 
 
-    @GetMapping("/details")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<SubscriptionModel>> getUserSubscriptions(@PathVariable Integer userId) {
+        List<SubscriptionModel> subscriptions = subscriptionService.getListSubscription(userId);
+        return new ResponseEntity<>(subscriptions, HttpStatus.OK);
+    }
+
+
+
+    @GetMapping("/all")
     @Operation(
             summary = "Get All Subscription Details",
             description = "Retrieves all subscriptions available in the system.",
@@ -187,22 +193,9 @@ public class SubscriptionController {
                     @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "List of all subscriptions retrieved successfully")
             }
     )
-    public ResponseEntity<List<Subscription>> getAllSubscriptionDetails(@RequestHeader("Authorization") String token) {
+    public ResponseEntity<?> getAllSubscriptions() {
 
-        if (token == null || !token.startsWith("Bearer ")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
-        }
-
-        String actualToken = token.substring(7);
-        if (!authTokenService.isUserValid(actualToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Collections.emptyList());
-        }
         List<Subscription> subscriptions = subscriptionService.getAllSubscriptions();
-
-        if (subscriptions.isEmpty()) {
-            return ResponseEntity.ok().body(Collections.emptyList());
-        }
-
         return ResponseEntity.ok(subscriptions);
     }
 

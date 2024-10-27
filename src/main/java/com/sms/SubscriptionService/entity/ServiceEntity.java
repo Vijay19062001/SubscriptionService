@@ -30,7 +30,7 @@ public class ServiceEntity {
     private String description;
 
     @Column(name = "duration_days", nullable = false)
-    private String durationDays;
+    private int durationDays;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

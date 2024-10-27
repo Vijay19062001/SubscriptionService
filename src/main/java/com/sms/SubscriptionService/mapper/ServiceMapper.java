@@ -13,7 +13,7 @@ public class ServiceMapper {
         ServiceEntity service = new ServiceEntity();
         service.setServiceName(serviceModel.getServiceName());
         service.setDescription(serviceModel.getDescription());
-        service.setDurationDays(serviceModel.getDurationDays());
+        service.setDurationDays(Integer.parseInt(serviceModel.getDurationDays()));
         service.setDbstatus(serviceModel.getDbstatus());
 
         return service;
@@ -25,7 +25,7 @@ public class ServiceMapper {
         serviceModel.setId(service.getId());
         serviceModel.setServiceName(service.getServiceName());
         serviceModel.setDescription(service.getDescription());
-        serviceModel.setDurationDays(service.getDurationDays());
+        serviceModel.setDurationDays(String.valueOf(service.getDurationDays()));
         serviceModel.setDbstatus(service.getDbstatus());
 
         return serviceModel;

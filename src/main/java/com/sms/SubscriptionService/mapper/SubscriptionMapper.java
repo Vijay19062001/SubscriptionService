@@ -1,5 +1,6 @@
 package com.sms.SubscriptionService.mapper;
 
+import com.sms.SubscriptionService.entity.ServiceEntity;
 import com.sms.SubscriptionService.entity.Subscription;
 import com.sms.SubscriptionService.entity.Users;
 import com.sms.SubscriptionService.enums.Status;
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
 @Component
 public class SubscriptionMapper {
 
+    ServiceEntity service = new ServiceEntity();
     public Subscription toEntity(SubscriptionModel subscriptionModel, Users users) throws InvalidDateFormatException {
         Subscription subscription = new Subscription();
 
@@ -20,13 +22,14 @@ public class SubscriptionMapper {
         subscription.setServiceId(Integer.parseInt(subscriptionModel.getServiceId()));
         LocalDateTime startDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getStartDate());
         subscription.setStartDate(startDateTime);
-        LocalDateTime now = LocalDateTime.now();
-        subscription.setEndDate(now);
+//        LocalDateTime endDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getEndDate());
+//        subscription.setEndDate(LocalDateTime.from(endDateTime.plusDays(90).toLocalDate()));
+       LocalDateTime now =LocalDateTime.now();
+       subscription.setEndDate(now);
         subscription.setCreatedDate(now);
         subscription.setUpdatedDate(now);
         subscription.setCreatedBy( users.getUserName());
         subscription.setUpdatedBy(users.getUserName());
-
         subscription.setDbstatus(Status.ACTIVE);
         subscription.setTransactionId(Integer.parseInt(subscriptionModel.getTransactionId()));
 
@@ -42,7 +45,13 @@ public class SubscriptionMapper {
         String formattedStartDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getStartDate()));
         subscriptionModel.setStartDate(formattedStartDate);
         subscriptionModel.setDbstatus(Status.ACTIVE);
+        String formattedEndDate = DateUtils.localDateToString(DateUtils.localDateTimeToLocalDate(subscription.getEndDate()));
+        subscriptionModel.setEndDate(formattedEndDate);
+        subscriptionModel.setCreatedBy(subscription.getCreatedBy());
         subscriptionModel.setTransactionId(String.valueOf(subscription.getTransactionId()));
+        subscriptionModel.setCreatedDate(String.valueOf(subscription.getCreatedDate()));
+        subscriptionModel.setUpdatedDate(String.valueOf(subscription.getUpdatedDate()));
+        subscriptionModel.setUpdatedBy(subscription.getUpdatedBy());
 
         return subscriptionModel;
     }

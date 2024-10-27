@@ -12,6 +12,7 @@ public class UsersMapper {
 
         Users users = new Users();
         users.setUserName(usersModel.getUserName());
+        users.setName(users.getName());
         users.setEmail(usersModel.getEmail());
         users.setPassword(usersModel.getPassword());
         users.setAccountNumber(usersModel.getAccountNumber());
@@ -25,6 +26,7 @@ public class UsersMapper {
         UsersModel usersModel = new UsersModel();
         usersModel.setId(users.getId());
         usersModel.setUserName(users.getUserName());
+        usersModel.setName(users.getName());
         usersModel.setEmail(users.getEmail());
         usersModel.setPassword(users.getPassword());
         usersModel.setAccountNumber(users.getAccountNumber());
