@@ -81,7 +81,7 @@ public class AuthTokenServiceImpl implements AuthTokenService {
 
         String token = UUID.randomUUID().toString();
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expireDate = now.plusMinutes(3);
+        LocalDateTime expireDate = now.plusMinutes(5);
 
         AuthTokens authTokens = authTokenMapper.toEntity(user, token, expireDate);
         authTokenRepository.save(authTokens);

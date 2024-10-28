@@ -31,7 +31,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -176,13 +175,29 @@ public class SubscriptionController {
         return ResponseEntity.ok("Subscription with ID " + subscriptionId + " successfully cancelled.");
     }
 
-
     @GetMapping("/user/{userId}")
+    @Operation(
+            summary = "Get User Subscriptions",
+            description = "Retrieves a list of subscriptions for the specified user by user ID.",
+            responses = {
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "List of user subscriptions retrieved successfully",
+                            content = @io.swagger.v3.oas.annotations.media.Content(
+                                    mediaType = "application/json",
+                                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = SubscriptionModel.class)
+                            )
+                    ),
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "404",
+                            description = "User not found or no subscriptions available for the user"
+                    )
+            }
+    )
     public ResponseEntity<List<SubscriptionModel>> getUserSubscriptions(@PathVariable Integer userId) {
         List<SubscriptionModel> subscriptions = subscriptionService.getListSubscription(userId);
         return new ResponseEntity<>(subscriptions, HttpStatus.OK);
     }
-
 
 
     @GetMapping("/all")
@@ -190,7 +205,14 @@ public class SubscriptionController {
             summary = "Get All Subscription Details",
             description = "Retrieves all subscriptions available in the system.",
             responses = {
-                    @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "List of all subscriptions retrieved successfully")
+                    @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                            responseCode = "200",
+                            description = "List of all subscriptions retrieved successfully",
+                            content = @io.swagger.v3.oas.annotations.media.Content(
+                                    mediaType = "application/json",
+                                    schema = @io.swagger.v3.oas.annotations.media.Schema(implementation = Subscription.class)
+                            )
+                    )
             }
     )
     public ResponseEntity<?> getAllSubscriptions() {

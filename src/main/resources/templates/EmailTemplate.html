@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.w3.org/1999/xhtml" lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Subscription Confirmation</title>
+    <title>Subscription Reminder</title>
     <style>
         body { font-family: Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
         .container { width: 70%; margin: 50px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
@@ -19,27 +19,28 @@
         <h1>Hotstar Subscription Service</h1>
     </div>
     <h3>Hello, <span th:text="${Name}"></span>!</h3>
-    <p>Your subscription is confirmation, Here are the details:</p>
+    <p>Your subscription service nearing expiration. Here are the details:</p>
     <h4>Subscription Details:</h4>
-    <p><strong>Service Name:</strong> <span th:text="${serviceName}"></span></p>
-    <p><strong>Subscription ID:</strong> <span th:text="${subscriptionId}"></span></p>
-    <p><strong>Start Date:</strong> <span th:text="${startDate}"></span></p>
-    <p><strong>Expiry Date:</strong> <span th:text="${endDate}"></span></p>
 
     <table>
         <thead>
-        <tr><th>Service Name</th><th>Status</th><th>Subscription Start Date</th><th>Subscription Expiry Date</th></tr>
+        <tr>
+            <th>Service Name</th>
+            <th>Subscription Start Date</th>
+            <th>Subscription Expiry Date</th>
+        </tr>
         </thead>
         <tbody>
         <tr th:each="subscription : ${allSubscriptions}">
-            <td th:text="${subscription.serviceName}"></td>
-            <td th:text="${subscription.startDate}"></td>
-            <td th:text="${subscription.endDate}"></td>
+            <td th:text="${subscription['serviceName']}"></td>
+            <td th:text="${subscription['startDate']}"></td>
+            <td th:text="${subscription['endDate']}"></td>
         </tr>
         </tbody>
     </table>
+
     <div class="footer">
-        <p>Thank you for Subscription Service!</p>
+        <p>Thank you for using the Subscription Service!</p>
     </div>
 </div>
 </body>

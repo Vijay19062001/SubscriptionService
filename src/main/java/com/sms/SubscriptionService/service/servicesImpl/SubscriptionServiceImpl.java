@@ -178,7 +178,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
     @Value("${scheduler.enabled}")
     private boolean isSchedulerEnabled;
 
-    @Scheduled(cron = "0 11 23 * * ?")
+    @Scheduled(cron = "0 00 11 * * ?")
     public void scheduleDailySubscriptionReminder() {
         logger.info("Scheduling daily subscription reminder emails.");
 
@@ -190,7 +190,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         logger.info("Starting scheduled task to send daily subscription reminder emails.");
 
         try {
-            // Fetch all users to send reminders
             List<Users> allUsers = userRepository.findAll();
             logger.info("Found {} users to send subscription reminders.", allUsers.size());
 
@@ -207,15 +206,13 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         try {
             logger.info("Preparing email for user: {}", user.getId());
 
-            // Fetch subscriptions that are nearing expiration
             List<Subscription> subscriptions = subscriptionRepository
                     .findByUserIdAndEndDateBetween(
                             user.getId(),
-                            LocalDate.now().plusDays(1).atStartOfDay(),
+                            LocalDate.now().atStartOfDay(),
                             LocalDate.now().plusDays(3).atTime(LocalTime.MAX)
                     );
 
-            // If subscriptions are found, send email
             if (!subscriptions.isEmpty()) {
                 sendSubscriptionReminderEmail(user, subscriptions);
                 logger.info("Successfully sent email to user: {}", user.getId());
@@ -233,7 +230,6 @@ public class SubscriptionServiceImpl implements SubscriptionService {
             Context context = new Context();
             context.setVariable("Name", user.getName());
 
-            // Fetch details for each subscription
             List<Map<String, String>> subscriptionDetails = subscriptions.stream()
                     .map(subscription -> {
                         ServiceEntity serviceEntity = serviceRepository.findById(subscription.getServiceId())
@@ -243,8 +239,7 @@ public class SubscriptionServiceImpl implements SubscriptionService {
                         details.put("serviceName", serviceEntity.getServiceName());
                         details.put("subscriptionId", String.valueOf(subscription.getId()));
                         details.put("startDate", subscription.getStartDate().toString());
-                        details.put("expiryDate", subscription.getEndDate().toString());
-                        details.put("status", subscription.getDbstatus().toString()); // Include status
+                        details.put("endDate", subscription.getEndDate().toString());
                         return details;
                     }).collect(Collectors.toList());
 
