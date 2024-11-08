@@ -1,6 +1,5 @@
 package com.sms.SubscriptionService.dto;
 
-
 import lombok.*;
 
 @Data
@@ -8,7 +7,7 @@ public class PaymentRequestDTO {
 
     private String id;
     private String userId;
-    private String bankId;
+    private String accountNumber;
     private String serviceId;
     private String amount;
     private String paymentStatus;

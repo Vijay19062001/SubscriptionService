@@ -19,7 +19,6 @@ public class SubscriptionMapper {
     public Subscription toEntity(SubscriptionModel subscriptionModel, Users users) throws InvalidDateFormatException {
         Subscription subscription = new Subscription();
 
-        subscription.setUserId(Integer.parseInt(subscriptionModel.getUserId()));
         subscription.setServiceId(Integer.parseInt(subscriptionModel.getServiceId()));
         LocalDateTime startDateTime = DateUtils.convertToLocalDateTime(subscriptionModel.getStartDate());
         subscription.setStartDate(startDateTime);
@@ -51,6 +50,7 @@ public class SubscriptionMapper {
         subscriptionModel.setCreatedDate(String.valueOf(subscription.getCreatedDate()));
         subscriptionModel.setUpdatedDate(String.valueOf(subscription.getUpdatedDate()));
         subscriptionModel.setUpdatedBy(subscription.getUpdatedBy());
+
 
         return subscriptionModel;
     }

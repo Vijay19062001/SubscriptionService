@@ -7,7 +7,7 @@ import lombok.*;
 public class PaymentTransaction {
     private String id;
     private String userId;
-    private String bankId;
+    private String accountNumber;
     private String serviceId;
     private Double amount;
     private String paymentStatus;

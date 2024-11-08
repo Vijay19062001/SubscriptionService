@@ -9,7 +9,7 @@ public class PaymentRequestMapper {
     public static PaymentTransaction toEntity(PaymentRequestDTO dto) {
         PaymentTransaction transaction = new PaymentTransaction();
         transaction.setUserId(dto.getUserId());
-        transaction.setBankId(String.valueOf(Integer.parseInt(dto.getBankId())));
+        transaction.setAccountNumber(String.valueOf(dto.getAccountNumber()));
         transaction.setServiceId(String.valueOf(Integer.parseInt(dto.getServiceId())));
         transaction.setAmount(Double.valueOf(dto.getAmount()));
         transaction.setPaymentStatus(dto.getPaymentStatus());
@@ -25,7 +25,7 @@ public class PaymentRequestMapper {
     public static PaymentRequestDTO toDTO(PaymentTransaction entity) {
         PaymentRequestDTO dto = new PaymentRequestDTO();
         dto.setId(entity.getId());
-        dto.setBankId(entity.getBankId());
+        dto.setAccountNumber(entity.getAccountNumber());
         dto.setServiceId(entity.getServiceId());
         dto.setAmount(String.valueOf(entity.getAmount()));
         dto.setPaymentStatus(entity.getPaymentStatus());

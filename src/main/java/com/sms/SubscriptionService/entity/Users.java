@@ -53,5 +53,4 @@ public class Users {
     @Column(name = "updated_by", nullable = false)
     private String updatedBy;
 
-
 }

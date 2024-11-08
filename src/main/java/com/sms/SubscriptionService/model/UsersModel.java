@@ -36,8 +36,7 @@ public class UsersModel {
             message = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.")
     private String password;
 
-    @NotNull(message = "Account number cannot be null.")
-    @Pattern(regexp = "^[A-Z]{3}\\d{9}$", message = "Account number must be in the format 'XXX123456789' (3 letters followed by 9 digits).")
+
     private String accountNumber;
 
     @NotNull(message = "Status cannot be null.")

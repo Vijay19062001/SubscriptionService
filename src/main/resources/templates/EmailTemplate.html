@@ -1,46 +1,68 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.w3.org/1999/xhtml" lang="en">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
     <meta charset="UTF-8" />
     <title>Subscription Reminder</title>
     <style>
         body { font-family: Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
         .container { width: 70%; margin: 50px auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); }
-        .header { background-color: #007bff; padding: 20px; color: #ffffff; text-align: center; }
+        .header { background-color: #007bff; padding: 20px; color: #ffffff; text-align: center; border-radius: 8px 8px 0 0; }
         h3 { color: #007bff; }
         table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
         .footer { font-size: 0.8em; color: #888; text-align: center; padding: 10px; margin-top: 20px; }
+        .section-title { margin-top: 30px; color: #333; }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>Hotstar Subscription Service</h1>
+        <h1>Subscription Service Reminder</h1>
     </div>
-    <h3>Hello, <span th:text="${Name}"></span>!</h3>
-    <p>Your subscription service nearing expiration. Here are the details:</p>
-    <h4>Subscription Details:</h4>
+    <h3>Hello, <span th:text="${Name}">User</span>!</h3>
 
-    <table>
-        <thead>
-        <tr>
-            <th>Service Name</th>
-            <th>Subscription Start Date</th>
-            <th>Subscription Expiry Date</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="subscription : ${allSubscriptions}">
-            <td th:text="${subscription['serviceName']}"></td>
-            <td th:text="${subscription['startDate']}"></td>
-            <td th:text="${subscription['endDate']}"></td>
-        </tr>
-        </tbody>
-    </table>
+    <div th:if="${activeSubscriptions != null} and ${#lists.size(activeSubscriptions)} > 0">
+        <h4 class="section-title">Active Subscriptions Nearing Expiration:</h4>
+        <table>
+            <thead>
+            <tr>
+                <th>Service Name</th>
+                <th>Subscription Start Date</th>
+                <th>Subscription Expiry Date</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="subscription : ${activeSubscriptions}">
+                <td th:text="${subscription['serviceName']}">Service Name</td>
+                <td th:text="${subscription['startDate']}">Start Date</td>
+                <td th:text="${subscription['endDate']}">End Date</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div th:if="${deactivatedSubscriptions != null} and ${#lists.size(deactivatedSubscriptions)} > 0">
+        <h4 class="section-title">Deactivated Subscriptions:</h4>
+        <table>
+            <thead>
+            <tr>
+                <th>Service Name</th>
+                <th>Subscription ID</th>
+                <th>Deactivation Date</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="subscription : ${deactivatedSubscriptions}">
+                <td th:text="${subscription['serviceName']}">Service Name</td>
+                <td th:text="${subscription['subscriptionId']}">Subscription ID</td>
+                <td th:text="${subscription['deactivationDate']}">Deactivation Date</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 
     <div class="footer">
-        <p>Thank you for using the Subscription Service!</p>
+        <p>If you have any questions, feel free to contact our support team.</p>
     </div>
 </div>
 </body>

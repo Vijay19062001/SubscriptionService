@@ -11,7 +11,6 @@
             margin: 0;
             padding: 20px;
         }
-
         .container {
             background-color: #ffffff;
             padding: 20px;
@@ -19,11 +18,9 @@
             margin: 0 auto;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-
         h1 {
             color: #333333;
         }
-
         .section-title {
             color: #666666;
             margin-bottom: 10px;
@@ -31,28 +28,9 @@
             border-bottom: 2px solid #dddddd;
             padding-bottom: 5px;
         }
-
-        .subscription-list {
+        .subscription-details {
             margin: 20px 0;
         }
-
-        .subscription-item {
-            padding: 10px;
-            border-bottom: 1px solid #eeeeee;
-        }
-
-        .subscription-item:last-child {
-            border-bottom: none;
-        }
-
-        .active {
-            color: #28a745; /* Green for active subscriptions */
-        }
-
-        .deactivated {
-            color: #dc3545; /* Red for deactivated subscriptions */
-        }
-
         .footer {
             text-align: center;
             color: #777777;
@@ -65,44 +43,12 @@
 <div class="container">
     <h1>Subscription Confirmation</h1>
     <p>Dear <strong th:text="${Name}"></strong>,</p>
-    <p>Thank you for subscribing! Below are the details of your active and deactivated subscriptions:</p>
+    <p>Thank you for subscribing to our service! Here are your subscription details:</p>
 
-    <!-- Active Subscriptions Section -->
-    <div class="subscription-list">
-        <h2 class="section-title">Active Subscriptions</h2>
-
-        <!-- Loop through active subscriptions -->
-        <div th:if="${activeSubscriptions.size() > 0}">
-            <div th:each="subscription : ${activeSubscriptions}" class="subscription-item active">
-                <p><strong>Service Name:</strong> <span th:text="${serviceName}"></span></p>
-                <p><strong>Subscription ID:</strong> <span th:text="${subscription.id}"></span></p>
-                <p><strong>Start Date:</strong> <span th:text="${subscription.startDate}"></span></p>
-                <p><strong>Expiry Date:</strong> <span th:text="${subscription.endDate}"></span></p>
-                <p><strong>Status:</strong> Active</p>
-            </div>
-        </div>
-
-        <!-- Message if no active subscriptions -->
-        <p th:if="${activeSubscriptions.size() == 0}">No active subscriptions found.</p>
-    </div>
-
-    <!-- Deactivated Subscriptions Section -->
-    <div class="subscription-list">
-        <h2 class="section-title">Deactivated Subscriptions</h2>
-
-        <!-- Loop through deactivated subscriptions -->
-        <div th:if="${deactivatedSubscriptions.size() > 0}">
-            <div th:each="subscription : ${deactivatedSubscriptions}" class="subscription-item deactivated">
-                <p><strong>Service Name:</strong> <span th:text="${serviceName}"></span></p>
-                <p><strong>Subscription ID:</strong> <span th:text="${subscription.id}"></span></p>
-                <p><strong>Start Date:</strong> <span th:text="${subscription.startDate}"></span></p>
-                <p><strong>Expiry Date:</strong> <span th:text="${subscription.endDate}"></span></p>
-                <p><strong>Status:</strong> Deactivated</p>
-            </div>
-        </div>
-
-        <!-- Message if no deactivated subscriptions -->
-        <p th:if="${deactivatedSubscriptions.size() == 0}">No deactivated subscriptions found.</p>
+    <div class="subscription-details">
+        <p><strong>Service Name:</strong> <span th:text="${serviceName}"></span></p>
+        <p><strong>Start Date:</strong> <span th:text="${subscription.startDate}"></span></p>
+        <p><strong>Expiry Date:</strong> <span th:text="${subscription.endDate}"></span></p>
     </div>
 
     <p>If you have any questions, feel free to contact our support team.</p>

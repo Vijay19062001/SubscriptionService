@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,7 +24,7 @@ public class Subscription {
     @Column(name = "user_id", nullable = false)
     private int userId;
 
-    @Column(name = "service_id", nullable = false)
+    @Column(name = "service_id",nullable = false)
     private int serviceId;
 
     @Column(name = "start_date", nullable = false)

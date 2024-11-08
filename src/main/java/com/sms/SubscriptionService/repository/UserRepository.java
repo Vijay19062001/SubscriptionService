@@ -10,4 +10,5 @@ public interface UserRepository extends JpaRepository<Users, Integer> {
     Optional<Users> findByIdAndDbstatus(Integer userId, Status status);
     Optional<Users> findByUserNameIgnoreCase(String userName);
     boolean existsById(Integer userId);
+    Optional<Users>findByAccountNumberAndDbstatus(String accountNumber, Status status);
 }

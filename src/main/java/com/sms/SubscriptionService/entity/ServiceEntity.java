@@ -20,7 +20,7 @@ public class ServiceEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
+    @Column(name = "id", insertable = false,updatable = false)
     private int id;
 
     @Column(name = "service_name", nullable = false)
@@ -47,5 +47,6 @@ public class ServiceEntity {
 
     @Column(name = "updated_by", nullable = false)
     private String updatedBy;
+
 
 }

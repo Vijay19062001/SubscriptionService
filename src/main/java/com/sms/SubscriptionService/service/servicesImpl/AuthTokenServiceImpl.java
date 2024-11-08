@@ -87,7 +87,6 @@ public class AuthTokenServiceImpl implements AuthTokenService {
         authTokenRepository.save(authTokens);
         logger.info("New token generated and saved for user: {}", user.getUserName());
 
-        // Return the generated token
         Map<String, String> response = new HashMap<>();
         response.put("token", token);
 
@@ -125,6 +124,8 @@ public class AuthTokenServiceImpl implements AuthTokenService {
         logger.info("Token validation successful for user: {}", user.getUserName());
         return true;
     }
+
+
 
     @Override
     public Integer validToken(String token, int userId) {
